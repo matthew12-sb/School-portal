@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Student Reports - Salvation Army School</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="card">
+    <img src="static/logo4.png" class="logo-box" alt="School Logo">
+    <h3 class="mb-4">📊 Student Reports</h3>
+
+    <!-- Attendance -->
+    <h4>Attendance Summary</h4>
+    <div class="table-responsive">
+      <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+          <tr>
+            <th>Student</th>
+            <th>Present</th>
+            <th>Absent</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in attendance %}
+          <tr>
+            <td>{{ a.name }}</td>
+            <td>{{ a.presents }}</td>
+            <td>{{ a.absents }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Scores -->
+    <h4 class="mt-4">Scores Summary</h4>
+    <div class="table-responsive">
+      <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+          <tr>
+            <th>Student</th>
+            <th>Average Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in scores %}
+          <tr>
+            <td>{{ s.name }}</td>
+            <td>{{ "%.2f"|format(s.avg_score if s.avg_score else 0) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Back button -->
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mt-3">⬅ Back to Dashboard</a>
+  </div>
+</body>
+</html>

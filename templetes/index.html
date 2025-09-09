@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Salvation Army School Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">  
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body {
+      min-height: 100vh;
+      background: url('static/logo3.jpg') no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      overflow: visible;
+      background: #fff;
+      width: 100%;
+      max-width: 400px;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .logo-box {
+      width: 100px;
+      margin: 0 auto 1rem;
+      display: block;
+    }
+
+    .dashboard-logo {
+      width: 60px;
+      margin-right: 10px;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -8px;
+      border-radius: 18px;
+      background: conic-gradient(from 0deg, #ff4d4d, #ffb84d, #ffd94d, #4dff88, #4dd0ff, #8e4dff, #ff4d8e, #ff4d4d);
+      filter: blur(10px);
+      opacity: 0.95;
+      z-index: 0;
+      animation: rotate 4s linear infinite;
+      pointer-events: none;
+    }
+
+    .card > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    @keyframes rotate {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Login/Register Card -->
+  <div id="authCard" class="card">
+    <!-- 👇 Small logo inside the box -->
+    <img src="static/logo4.png" alt="School Logo" class="logo-box">
+    <h3 class="mb-4">Salvation Army School</h3>
+
+   <!-- Register Form -->
+<form id="registerForm" method="POST" action="{{ url_for('register') }}">
+  <h5 class="mb-3">Create Account</h5>
+  <input required class="form-control mb-2" name="username" placeholder="Username">
+  <input required type="password" class="form-control mb-2" name="password" placeholder="Password">
+  <select class="form-select mb-3" name="secret" required>
+    <option value="">Select Your Role</option>
+    <option value="SALVATION123">Teacher</option>
+    <option value="HEADMASTER321">Headmaster</option>
+  </select>
+  <button class="btn btn-primary w-100">Sign Up</button>
+  <p class="mt-3">
+    Have an account? <span class="toggle-link text-primary" onclick="toggleForm()">Log In</span>
+  </p>
+</form>
+
+<!-- Login Form -->
+<form id="loginForm" class="d-none" method="POST" action="{{ url_for('login') }}">
+  <h5 class="mb-3">Staff Login</h5>
+  <input required class="form-control mb-2" name="username" placeholder="Username">
+  <input required type="password" class="form-control mb-2" name="password" placeholder="Password">
+  <button class="btn btn-success w-100">Log In</button>
+  <p class="mt-3">
+    Don’t have an account? <span class="toggle-link text-primary" onclick="toggleForm()">Register</span>
+  </p>
+</form>
+
+  </div>
+
+  <script>
+    function toggleForm() {
+      document.getElementById('registerForm').classList.toggle('d-none');
+      document.getElementById('loginForm').classList.toggle('d-none');
+    }
+  </script>
+</body>
+</html>
