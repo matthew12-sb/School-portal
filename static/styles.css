@@ -1,17 +1,13 @@
-/* ===== Global Styles ===== */
 body {
   min-height: 100vh;
-  background: url("{{ url_for('static', filename='logo3.jpg') }}") no-repeat center center fixed;
+  background: url("../static/logo3.jpg") no-repeat center center fixed;
   background-size: cover;
-  font-family: 'Montserrat', sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0;
-  padding: 0;
+  font-family: 'Montserrat', sans-serif;
 }
 
-/* ===== Card Style (used in login/register + dashboard widgets) ===== */
 .card {
   position: relative;
   z-index: 1;
@@ -23,23 +19,19 @@ body {
   border-radius: 12px;
   box-shadow: 0 0 20px rgba(0,0,0,0.1);
   text-align: center;
-  margin: auto;
 }
 
-/* Logo inside card */
 .logo-box {
   width: 100px;
   margin: 0 auto 1rem;
   display: block;
 }
 
-/* Dashboard logo */
 .dashboard-logo {
   width: 60px;
   margin-right: 10px;
 }
 
-/* Rotating Glow Effect */
 .card::before {
   content: "";
   position: absolute;
@@ -60,27 +52,4 @@ body {
 
 @keyframes rotate {
   to { transform: rotate(360deg); }
-}
-
-/* ===== Dashboard Layout ===== */
-.dashboard-container {
-  max-width: 900px;
-  margin: auto;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-}
-
-.dashboard-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
-  text-align: center;
-  transition: 0.3s ease;
-}
-
-.dashboard-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 0 20px rgba(0,0,0,0.2);
 }
