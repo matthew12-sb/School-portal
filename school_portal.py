@@ -1,184 +1,109 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-import mysql.connector
-from datetime import date
+import os
+import psycopg2
+from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey"  # change in production
 
-# ✅ Database connection
-db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="",
-    database="school_portal"
+# Database connection
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://school_portal_db_l32k_user:AnEUOA0iIl6wFTZEttFGEGj3al7rFnCb@dpg-d30ebe95pdvs73ftv4dg-a.oregon-postgres.render.com/school_portal_db_l32k"
 )
-cursor = db.cursor(dictionary=True)
 
-# ===================== AUTH =====================
+def get_db():
+    return psycopg2.connect(DATABASE_URL)
+
+# -------------------- ROUTES -------------------- #
+
 @app.route("/")
 def home():
     return render_template("index.html")
 
-@app.route("/register", methods=["POST"])
-def register():
-    username = request.form["username"]
-    password = request.form["password"]
-    secret = request.form["secret"]
+@app.route("/students")
+def students():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, name, class FROM students ORDER BY name;")
+    rows = cur.fetchall()
+    conn.close()
+    return render_template("students.html", students=rows)
 
-    # Determine role
-    if secret == "SALVATION123":
-        role = "teacher"
-    elif secret == "HEADMASTER321":
-        role = "headmaster"
-    else:
-        flash("Invalid role code!")
-        return redirect(url_for("home"))
+@app.route("/add_student", methods=["POST"])
+def add_student():
+    name = request.form["name"]
+    student_class = request.form["class"]
 
-    try:
-        cursor.execute("INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
-                       (username, password, role))
-        db.commit()
-        flash("Account created! Please log in.")
-    except mysql.connector.IntegrityError:
-        flash("Username already exists!")
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("INSERT INTO students (name, class) VALUES (%s, %s);", (name, student_class))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("students"))
 
-    return redirect(url_for("home"))
-
-@app.route("/login", methods=["POST"])
-def login():
-    username = request.form["username"]
-    password = request.form["password"]
-
-    cursor.execute("SELECT * FROM users WHERE username=%s AND password=%s", (username, password))
-    user = cursor.fetchone()
-
-    if user:
-        session["user_id"] = user["id"]
-        session["role"] = user["role"]
-        session["username"] = user["username"]
-        return redirect(url_for("dashboard"))
-    else:
-        flash("Invalid username or password")
-        return redirect(url_for("home"))
-
-@app.route("/dashboard")
-def dashboard():
-    if "user_id" not in session:
-        return redirect(url_for("home"))
-    return render_template("dashboard.html", role=session["role"])
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("home"))
-
-# ===================== ATTENDANCE =====================
-@app.route("/attendance", methods=["GET", "POST"])
+@app.route("/attendance")
 def attendance():
-    if "role" not in session or session["role"] != "teacher":
-        return redirect(url_for("home"))
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT a.id, s.name, a.date, a.status
+        FROM attendance a
+        JOIN students s ON a.student_id = s.id
+        ORDER BY a.date DESC;
+    """)
+    rows = cur.fetchall()
+    conn.close()
+    return render_template("attendance.html", records=rows)
 
-    # Get all students
-    cursor.execute("SELECT id, name FROM students")
-    students = cursor.fetchall()
+@app.route("/add_attendance", methods=["POST"])
+def add_attendance():
+    student_id = request.form["student_id"]
+    status = request.form["status"]
 
-    if request.method == "POST":
-        for student in students:
-            status = request.form.get(f"status_{student['id']}")
-            if status:  # Only save if teacher selected
-                cursor.execute(
-                    "INSERT INTO attendance (student_id, date, status) VALUES (%s, CURDATE(), %s)",
-                    (student["id"], status),
-                )
-        db.commit()
-        return redirect(url_for("dashboard"))
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("INSERT INTO attendance (student_id, date, status) VALUES (%s, CURRENT_DATE, %s);",
+                (student_id, status))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("attendance"))
 
-    return render_template("attendance.html", students=students)
-
-
-# ===================== SCORES =====================
-@app.route("/scores", methods=["GET", "POST"])
+@app.route("/scores")
 def scores():
-    if "role" not in session or session["role"] != "teacher":
-        return redirect(url_for("home"))
-
-    # Get all students
-    cursor.execute("SELECT id, name FROM students")
-    students = cursor.fetchall()
-
-    if request.method == "POST":
-        subject = request.form.get("subject")
-        for student in students:
-            score = request.form.get(f"score_{student['id']}")
-            if score:
-                cursor.execute(
-                    "INSERT INTO scores (student_id, teacher_id, subject, score, status) VALUES (%s, %s, %s, %s, 'pending')",
-                    (student["id"], session["user_id"], subject, score),
-                )
-        db.commit()
-        return redirect(url_for("dashboard"))
-
-    return render_template("scores.html", students=students)
-
-
-# ===================== APPROVAL =====================
-@app.route("/approval", methods=["GET", "POST"])
-def approval():
-    if "role" not in session or session["role"] != "headmaster":
-        return redirect(url_for("home"))
-
-    if request.method == "POST":
-        score_id = request.form.get("score_id")
-        action = request.form.get("action")
-
-        if action == "approve":
-            cursor.execute("UPDATE scores SET status='approved' WHERE id=%s", (score_id,))
-        elif action == "reject":
-            cursor.execute("UPDATE scores SET status='rejected' WHERE id=%s", (score_id,))
-        db.commit()
-
-    cursor.execute("""
-        SELECT s.id, st.name AS student_name, u.username AS teacher_name, s.subject, s.score, s.status
-        FROM scores s
-        JOIN students st ON s.student_id = st.id
-        JOIN users u ON s.teacher_id = u.id
-        WHERE s.status = 'pending'
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT sc.id, s.name, sc.subject, sc.score, sc.approved
+        FROM scores sc
+        JOIN students s ON sc.student_id = s.id
+        ORDER BY s.name;
     """)
-    pending_scores = cursor.fetchall()
+    rows = cur.fetchall()
+    conn.close()
+    return render_template("scores.html", scores=rows)
 
-    return render_template("approval.html", scores=pending_scores)
+@app.route("/add_score", methods=["POST"])
+def add_score():
+    student_id = request.form["student_id"]
+    subject = request.form["subject"]
+    score = request.form["score"]
 
-# ===================== REPORTS =====================
-@app.route("/reports")
-def reports():
-    # Only headmaster can access
-    if "role" not in session or session["role"] != "headmaster":
-        return redirect(url_for("home"))
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("INSERT INTO scores (student_id, subject, score, approved) VALUES (%s, %s, %s, FALSE);",
+                (student_id, subject, score))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("scores"))
 
-    # Attendance summary
-    cursor.execute("""
-        SELECT st.name, 
-               SUM(CASE WHEN a.status='present' THEN 1 ELSE 0 END) AS presents,
-               SUM(CASE WHEN a.status='absent' THEN 1 ELSE 0 END) AS absents
-        FROM students st
-        LEFT JOIN attendance a ON st.id = a.student_id
-        GROUP BY st.name
-    """)
-    attendance_summary = cursor.fetchall()
+@app.route("/approve_score/<int:score_id>")
+def approve_score(score_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("UPDATE scores SET approved = TRUE WHERE id = %s;", (score_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("scores"))
 
-    # Scores summary (only approved scores)
-    cursor.execute("""
-        SELECT st.name, AVG(s.score) AS avg_score
-        FROM students st
-        LEFT JOIN scores s ON st.id = s.student_id AND s.status='approved'
-        GROUP BY st.name
-    """)
-    scores_summary = cursor.fetchall()
-
-    return render_template("reports.html",
-                           attendance=attendance_summary,
-                           scores=scores_summary)
-
-
+# -------------------- RUN -------------------- #
 if __name__ == "__main__":
     app.run(debug=True)
